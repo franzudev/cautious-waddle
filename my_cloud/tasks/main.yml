@@ -1,0 +1,16 @@
+---
+
+- name: UPGRADE REPO
+  ansible.builtin.import_tasks: upgrade.yml
+  tags:
+    - upgrade-repo
+
+- name: SET IP
+  ansible.builtin.import_tasks: set-static-ip.yml
+  tags:
+    - custom-ip
+
+- name: HARDENING
+  ansible.builtin.import_tasks: hardening.yml
+  tags:
+    - hardening

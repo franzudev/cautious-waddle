@@ -1,0 +1,6 @@
+[sshd]
+enabled = {{ fail2ban_enabled }}
+port = {{ ssh_custom_port }}
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = {{ fail2ban_maxretry }}

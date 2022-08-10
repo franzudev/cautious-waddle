@@ -1,0 +1,97 @@
+- name: Check if a reboot is needed for Debian and Ubuntu boxes
+  register: reboot_required_file
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+    get_md5: false
+
+#- name: HARDENING | Secure Shared Memory
+#  ansible.builtin.lineinfile:
+#    path: /etc/fstab
+#    state: present
+#    regexp: '^tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
+#    line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
+#
+#- name: HARDENING | Reboot after secured shared memory
+#  ansible.builtin.reboot:
+
+- name: HARDENING | Remove unsecure packages
+  ansible.builtin.apt:
+    name:
+    - xinetd
+    - nis
+    - yp-tools
+    - tftpd
+    - atftpd
+    - tftpd-hpa
+    - telnetd
+    - rsh-server
+    - rsh-redone-server
+    state: absent
+    force_apt_get: true
+    purge: true
+
+- name: HARDENING | Get users with uid 0
+  ansible.builtin.shell: >
+    awk -F: '($3 == "0") {print}' /etc/passwd
+  changed_when: false
+  register: passwd
+
+- name: HARDENING | Check if only root has uid 0
+  ansible.builtin.command: echo "No uid 0"
+  changed_when: false
+  failed_when: passwd.stdout != "root:x:0:0:root:/root:/bin/bash"
+
+- name: HARDENING | Remove root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    regexp: '^PermitRootLogin no'
+    line: 'PermitRootLogin no'
+
+- name: HARDENING | Remove root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    regexp: '^PermitRootLogin no'
+    line: 'PermitRootLogin no'
+
+- name: HARDENING | Check AllowUsers's present in sshd_config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    regexp: '^AllowUsers.*'
+    line: 'AllowUsers'
+
+- name: HARDENING | Add user to AllowUsers
+  ansible.builtin.replace:
+    backup: true
+    dest: /etc/ssh/sshd_config
+    regexp: '^(AllowUsers(?!.*\b{{ user_name }}\b).*)$'
+    replace: '\1 {{ user_name }}'
+
+- name: HARDENING | Restart service sshd and issue daemon-reload to pick up config changes
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: true
+    name: sshd
+
+- name: HARDENING | Install fail2ban
+  ansible.builtin.apt:
+    state: present
+    name: fail2ban=0.11.2-6
+    force_apt_get: true
+
+- name: HARDENING | Configuring fail2ban
+  ansible.builtin.template:
+    src: templates/fail2ban.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  register: netplan_template
+
+- name: HARDENING | Restart service sshd and issue daemon-reload to read fail2ban config changes
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: true
+    name: sshd
