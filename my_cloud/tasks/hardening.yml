@@ -4,15 +4,17 @@
     path: /var/run/reboot-required
     get_md5: false
 
-#- name: HARDENING | Secure Shared Memory
-#  ansible.builtin.lineinfile:
-#    path: /etc/fstab
-#    state: present
-#    regexp: '^tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
-#    line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
-#
-#- name: HARDENING | Reboot after secured shared memory
-#  ansible.builtin.reboot:
+- name: HARDENING | Secure Shared Memory
+  register: secure_shared_memory
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    state: present
+    regexp: '^tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
+    line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
+
+- name: HARDENING | Reboot after secured shared memory
+  ansible.builtin.reboot:
+  when: secure_shared_memory.changed or reboot_required_file.stat.exists
 
 - name: HARDENING | Remove unsecure packages
   ansible.builtin.apt:
@@ -48,12 +50,12 @@
     regexp: '^PermitRootLogin no'
     line: 'PermitRootLogin no'
 
-- name: HARDENING | Remove root login
+- name: HARDENING | Set ssh custom port
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     state: present
-    regexp: '^PermitRootLogin no'
-    line: 'PermitRootLogin no'
+    regexp: '^Port'
+    line: 'Port {{ ssh_custom_port }}'
 
 - name: HARDENING | Check AllowUsers's present in sshd_config
   ansible.builtin.lineinfile:
@@ -81,7 +83,7 @@
     name: fail2ban=0.11.2-6
     force_apt_get: true
 
-- name: HARDENING | Configuring fail2ban
+- name: HARDENING | Configuring ssh in fail2ban
   ansible.builtin.template:
     src: templates/fail2ban.j2
     dest: /etc/fail2ban/jail.local
@@ -90,8 +92,44 @@
     mode: '0644'
   register: netplan_template
 
-- name: HARDENING | Restart service sshd and issue daemon-reload to read fail2ban config changes
+- name: HARDENING | Restart service fail2ban and issue daemon-reload to read fail2ban config changes
   ansible.builtin.systemd:
     state: restarted
     daemon_reload: true
-    name: sshd
+    enabled: true
+    name: fail2ban
+  when:
+    - netplan_template.changed
+
+- name: HARDENING | Deny everything and enable UFW
+  community.general.ufw:
+    state: enabled
+    default: deny
+  tags:
+    - ufw
+
+- name: HARDENING | Ufw allow port 80
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  tags:
+    - ufw
+
+- name: HARDENING | Ufw allow port 443
+  community.general.ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+  tags:
+    - ufw
+
+- name: HARDENING | Ufw allow {{ ssh_custom_port }}
+  community.general.ufw:
+    rule: allow
+    port: '{{ ssh_custom_port }}'
+    proto: tcp
+  tags:
+    - ufw
+
+
