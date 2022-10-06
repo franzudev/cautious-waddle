@@ -1,0 +1,29 @@
+<?php
+$CONFIG = array (
+  'instanceid' => 'obldfjh83uvjli',
+  'passwordsalt' => 'psae35DvdfefdF8uEceAnzo',
+  'secret' => 'dsfwfVNkf42d/JMjAZhBEa2/9kGx6fAy+QmOlICKKMur41J',
+  'trusted_domains' => 
+  array (
+    0 => '{{ server_name }}',
+  ),
+  'datadirectory' => '{{ nextcloud_data_path }}',
+  'dbtype' => 'mysql',
+  'version' => '{{ nextcloud_version }}',
+  'overwrite.cli.url' => 'https://{{ server_name }}',
+  'htaccess.RewriteBase' => '/',
+  'dbname' => 'nextcloud',
+  'dbhost' => 'localhost:3306',
+  'dbport' => '',
+  'dbtableprefix' => 'oc_',
+  'mysql.utf8mb4' => true,
+  'dbuser' => '{{ mysql_username }}',
+  'dbpassword' => '{{ mysql_password }}',
+  'installed' => true,
+  'memcache.distributed' => '\OC\Memcache\Redis',
+  'memcache.locking' => '\OC\Memcache\Redis',
+  'redis' => [
+    'host' => 'localhost',
+    'port' => 6379
+  ]
+);

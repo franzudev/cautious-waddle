@@ -1,0 +1,10 @@
+---
+server_name: example.org
+nextcloud_version: 24.0.4.1
+nextcloud_path: /var/www
+nextcloud_data_path: "/my/data/nextcloud"
+nextcloud_log_path: "{{ nextcloud_data_path }}/nextcloud.log"
+nextcloud_bantime: 86400
+nextcloud_findtime: 43200
+mysql_username: franzudev
+mysql_password: superstrongpassword
