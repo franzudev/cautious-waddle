@@ -247,7 +247,7 @@
 
 - name: Copy php-redis configuration file
   ansible.builtin.copy:
-    src: files/open_basedir.ini
+    src: files/open_basedir.ini.j2
     dest: /etc/php/8.1/cli/conf.d/20-basedir.ini
     owner: root
     group: root
