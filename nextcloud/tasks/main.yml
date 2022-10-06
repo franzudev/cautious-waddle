@@ -30,6 +30,7 @@
       - php-common
       - php8.1-common
       - libapache2-mod-php8.1
+      - libmagickcore-6.q16-6-extra
       - php8.1-gd
       - php8.1-curl
       - php8.1-mbstring
@@ -49,110 +50,111 @@
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-gmp
-     - php8.1-bcmath
+      - php8.1-gmp
+      - php8.1-bcmath
 
 - name: DEPENDENCY | Install required database connectors
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-mysql
-     - php8.1-pdo-mysql
+      - php8.1-mysql
+      - php8.1-pdo-mysql
 
 - name: DEPENDENCY | Install recommended packages
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-fileinfo
-     - php8.1-intl
-     - php8.1-bz2
-#
+      - php8.1-fileinfo
+      - php8.1-intl
+      - php8.1-bz2
+
 - name: DEPENDENCY | Install packages for enhanced server performance
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-redis
+      - php8.1-apcu
+      - php8.1-redis
 
 - name: DEPENDENCY | Install packages for preview generation
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-imagick
-     - ffmpeg
+      - php8.1-imagick
+      - ffmpeg
 
 - name: DEPENDENCY | Install packages for command line
   ansible.builtin.apt:
     force_apt_get: true
     name:
-     - php8.1-fpm
-     - php8.1-phar
+      - php8.1-fpm
+      - php8.1-phar
 
-- name: DEPENDENCY | Install pymysql for mysql's ansible module
-  ansible.builtin.pip:
-    name: pymysql
+#- name: DEPENDENCY | Install pymysql for mysql's ansible module
+#  ansible.builtin.pip:
+#    name: pymysql
 
-- name: MYSQL | Create mysql user
-  community.mysql.mysql_user:
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    name: '{{ mysql_username }}'
-    password: '{{ mysql_password }}'
-    host: localhost
-    state: present
-
-- name: MYSQL | Create nextcloud database
-  community.mysql.mysql_db:
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    name:
-      - nextcloud
-    state: present
-    encoding: utf8mb4
-    collation: utf8mb4_general_ci
-
-- name: MYSQL | Grant privileges to {{ mysql_username }} for database nextcloud
-  community.mysql.mysql_user:
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    name: '{{ mysql_username }}'
-    priv:
-      'nextcloud.*': ALL
-
-- name: MYSQL | Flush privileges
-  community.mysql.mysql_query:
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    query:
-      - "FLUSH PRIVILEGES"
-
-- name: NEXTCLOUD INSTALL | Download nextcloud
-  ansible.builtin.get_url:
-    url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2"
-    dest: "/tmp/nextcloud.tar.bz2"
-    checksum: md5:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2.md5
-
-- name: "NEXTCLOUD INSTALL | Extract nextcloud-{{ nextcloud_version }}.tar.bz2 into /var/www/nextcloud"
-  ansible.builtin.unarchive:
-    src: "/tmp/nextcloud.tar.bz2"
-    dest: "{{ nextcloud_path }}"
-    remote_src: true
-
-- name: "NEXTCLOUD INSTALL | Change the ownership of your Nextcloud directories to your HTTP user"
-  ansible.builtin.file:
-    dest: "{{ nextcloud_path }}/nextcloud"
-    owner: www-data
-    group: www-data
-    recurse: yes
-
-- name: MISC | Remove nextcloud temp dir
-  ansible.builtin.file:
-    name: "/tmp/nextcloud.tar.bz2"
-    state: absent
-
-- name: APACHE | Configuring virtual host
-  ansible.builtin.template:
-    src: templates/apache.nextcloud.conf.j2
-    dest: /etc/apache2/sites-available/nextcloud.conf
-    owner: root
-    group: root
-    mode: '0644'
-
+#- name: MYSQL | Create mysql user
+#  community.mysql.mysql_user:
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    name: '{{ mysql_username }}'
+#    password: '{{ mysql_password }}'
+#    host: localhost
+#    state: present
+#
+#- name: MYSQL | Create nextcloud database
+#  community.mysql.mysql_db:
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    name:
+#      - nextcloud
+#    state: present
+#    encoding: utf8mb4
+#    collation: utf8mb4_general_ci
+#
+#- name: MYSQL | Grant privileges to {{ mysql_username }} for database nextcloud
+#  community.mysql.mysql_user:
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    name: '{{ mysql_username }}'
+#    priv:
+#      'nextcloud.*': ALL
+#
+#- name: MYSQL | Flush privileges
+#  community.mysql.mysql_query:
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    query:
+#      - "FLUSH PRIVILEGES"
+#
+#- name: NEXTCLOUD INSTALL | Download nextcloud
+#  ansible.builtin.get_url:
+#    url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2"
+#    dest: "/tmp/nextcloud.tar.bz2"
+#    checksum: md5:https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2.md5
+#
+#- name: "NEXTCLOUD INSTALL | Extract nextcloud-{{ nextcloud_version }}.tar.bz2 into /var/www/nextcloud"
+#  ansible.builtin.unarchive:
+#    src: "/tmp/nextcloud.tar.bz2"
+#    dest: "{{ nextcloud_path }}"
+#    remote_src: true
+#
+#- name: "NEXTCLOUD INSTALL | Change the ownership of your Nextcloud directories to your HTTP user"
+#  ansible.builtin.file:
+#    dest: "{{ nextcloud_path }}/nextcloud"
+#    owner: www-data
+#    group: www-data
+#    recurse: yes
+#
+#- name: MISC | Remove nextcloud temp dir
+#  ansible.builtin.file:
+#    name: "/tmp/nextcloud.tar.bz2"
+#    state: absent
+#
+#- name: APACHE | Configuring virtual host
+#  ansible.builtin.template:
+#    src: templates/apache.nextcloud.conf.j2
+#    dest: /etc/apache2/sites-available/nextcloud.conf
+#    owner: root
+#    group: root
+#    mode: '0644'
+#
 - name: APACHE | Enable the Apache2 module ssl
   community.general.apache2_module:
     state: present
@@ -188,17 +190,68 @@
     state: present
     name: setenvif
 
-- name: Add redis to www-data
+- name: Disable the Apache2 module php8.1
+  community.general.apache2_module:
+    state: absent
+    name: php8.1
+
+# http2 abilitation
+#a2dismod php8.1
+#a2enconf php8.1-fpm
+#a2enmod proxy_fcgi
+#a2dismod mpm_prefork
+#a2enmod mpm_event
+#a2enmod http2
+#systemctl restart apache2.service
+#systemctl status apache2.service
+
+- name: Ensure a Nextcloud's job that runs at every 5 minutes
+  ansible.builtin.cron:
+    name: "check dirs"
+    user: www-data
+    minute: "*/5"
+    job: "php --define apc.enable_cli=1 -f /var/www/nextcloud/cron.php"
+
+- name: Add user redis to group www-data
   ansible.builtin.user:
     name: redis
     groups: www-data
     append: yes
 
-- name: APACHE | Create SSL directory if it does not exist
+- name: Add user www-data to group redis
+  ansible.builtin.user:
+    name: www-data
+    groups: redis
+    append: yes
+
+- name: REDIS | Create redis directory if it does not exist
   ansible.builtin.file:
     path: /var/run/redis/
     state: directory
     mode: '0755'
+
+- name: Make redis owner of /var/run/redis
+  ansible.builtin.file:
+    path: /var/run/redis/
+    owner: redis
+    group: www-data
+    recurse: yes
+
+- name: Copy redis configuration file
+  ansible.builtin.copy:
+    src: files/redis.conf
+    dest: /etc/redis/redis.conf
+    owner: redis
+    group: redis
+    mode: '0640'
+
+- name: Copy php-redis configuration file
+  ansible.builtin.copy:
+    src: files/open_basedir.ini
+    dest: /etc/php/8.1/cli/conf.d/20-basedir.ini
+    owner: root
+    group: root
+    mode: '0640'
 
 - name: APACHE | Create SSL directory if it does not exist
   ansible.builtin.file:
@@ -220,6 +273,12 @@
     owner: root
     group: root
 
+- name: REDIS | Restart
+  ansible.builtin.systemd:
+    name: redis-server
+    state: restarted
+    enabled: true
+
 - name: APACHE | Restart
   ansible.builtin.systemd:
     name: apache2
@@ -229,36 +288,28 @@
 - name: APACHE | Ensite nextcloud
   ansible.builtin.command: a2ensite nextcloud.conf
 
-- name: APACHE | Restart
+- name: APACHE | Reload config
   ansible.builtin.systemd:
     name: apache2
     state: reloaded
 
-# TODO include after nextcloud installation
-# BLOCK START
-#- name: HARDENING | Configuring nextcloud filter for fail2ban
-#  ansible.builtin.copy:
-#    src: files/nextcloud.conf
-#    dest: /etc/fail2ban/filter.d/nextcloud.conf
-#    owner: root
-#    group: root
-#    mode: '0644'
-#  register: nextcloud_filter_template
-#
-#- name: HARDENING | Configuring nextcloud in fail2ban
-#  ansible.builtin.template:
-#    src: templates/nextcloud.local.j2
-#    dest: /etc/fail2ban/jail.d/nextcloud.local
-#    owner: root
-#    group: root
-#    mode: '0644'
-#  register: nextcloud_template
-# BLOCK END
+- name: PRETTY | Pretty Urls
+  ansible.builtin.command: sudo -u www-data php /var/www/nextcloud/occ maintenance:update:htaccess
 
-#- name: HARDENING | Restart service fail2ban and issue daemon-reload to read fail2ban config changes
-#  ansible.builtin.systemd:
-#    state: restarted
-#    daemon_reload: true
-#    name: fail2ban
-#  when:
-#    - netplan_template.changed
+- name: HARDENING | Configuring nextcloud filter for fail2ban
+  ansible.builtin.copy:
+    src: files/nextcloud.conf
+    dest: /etc/fail2ban/filter.d/nextcloud.conf
+    owner: root
+    group: root
+    mode: '0644'
+  register: nextcloud_filter_template
+
+- name: HARDENING | Configuring nextcloud in fail2ban
+  ansible.builtin.template:
+    src: templates/nextcloud.local.j2
+    dest: /etc/fail2ban/jail.d/nextcloud.local
+    owner: root
+    group: root
+    mode: '0644'
+  register: nextcloud_template
