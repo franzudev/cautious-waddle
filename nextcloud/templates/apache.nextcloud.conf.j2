@@ -1,0 +1,27 @@
+<VirtualHost *:80>
+        ServerName  {{ server_name }}
+        Redirect permanent / https://{{ server_name }}/
+</VirtualHost>
+
+<VirtualHost *:443>
+  DocumentRoot {{ nextcloud_path }}/nextcloud
+  ServerName  {{ server_name }}
+
+  SSLEngine On
+  SSLCertificateFile /etc/apache2/ssl/{{ server_name }}.pem
+  SSLCertificateKeyFile /etc/apache2/ssl/{{ server_name }}.key
+
+  <Directory {{ nextcloud_path }}/nextcloud/>
+    Require all granted
+    AllowOverride All
+    Options FollowSymLinks MultiViews
+    Satisfy Any
+
+    <IfModule mod_dav.c>
+      Dav off
+    </IfModule>
+    <IfModule mod_headers.c>
+      Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains; preload"
+    </IfModule>
+  </Directory>
+</VirtualHost>
