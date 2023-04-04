@@ -1,5 +1,12 @@
+---
 static_ip: 192.168.1.2/24
 user_name: franzudev@192.168.1.4
 ssh_custom_port: 5555
 fail2ban_enabled: true
 fail2ban_maxretry: 5
+ubuntu_user: franzu
+ubuntu_user_shell: /bin/bash
+ubuntu_user_comment: franzu
+ubuntu_user_groups: sudo
+ubuntu_user_password: superstrongpassword
+authorized_keys: ssh-rsa <key> <comment>

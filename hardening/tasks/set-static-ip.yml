@@ -1,3 +1,4 @@
+---
 - name: SET IP | Configuring netplan for static IP
   ansible.builtin.template:
     src: templates/netplan.j2
