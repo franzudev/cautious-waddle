@@ -1,8 +1,12 @@
+---
 - name: UPGRADE REPO | Update apt-get repo and cache
   ansible.builtin.apt:
     update_cache: true
     force_apt_get: true
     cache_valid_time: 3600
+
+- name: UPGRADE REPO | apt update
+  command: apt update
 
 - name: UPGRADE REPO | Upgrade all apt packages
   ansible.builtin.apt:
