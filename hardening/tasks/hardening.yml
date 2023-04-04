@@ -1,8 +1,35 @@
+---
 - name: Check if a reboot is needed for Debian and Ubuntu boxes
   register: reboot_required_file
   ansible.builtin.stat:
     path: /var/run/reboot-required
     get_md5: false
+
+- name: HARDENING | Add the user 'franzu' with a primary group of 'sudo'
+  ansible.builtin.user:
+    name: "{{ ubuntu_user }}"
+    shell: "{{ ubuntu_user_shell }}"
+    comment: "{{ ubuntu_user_comment }}"
+    append: true
+    groups: "{{ ubuntu_user_groups }}"
+    password: "{{ ubuntu_user_password }}"
+  register: user
+
+- name: "HARDENING | Create user {{ user.name }} ssh dir"
+  ansible.builtin.file:
+    path: "{{ user.home }}/.ssh"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: '0700'
+
+- name: HARDENING | Add ssh key
+  ansible.builtin.template:
+    src: templates/authorized_keys
+    dest: "{{ user.home }}/.ssh/authorized_keys"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: '0644'
 
 - name: HARDENING | Secure Shared Memory
   register: secure_shared_memory
@@ -19,15 +46,15 @@
 - name: HARDENING | Remove unsecure packages
   ansible.builtin.apt:
     name:
-    - xinetd
-    - nis
-    - yp-tools
-    - tftpd
-    - atftpd
-    - tftpd-hpa
-    - telnetd
-    - rsh-server
-    - rsh-redone-server
+      - xinetd
+      - nis
+      - yp-tools
+      - tftpd
+      - atftpd
+      - tftpd-hpa
+      - telnetd
+      - rsh-server
+      - rsh-redone-server
     state: absent
     force_apt_get: true
     purge: true
@@ -71,7 +98,7 @@
     regexp: '^(AllowUsers(?!.*\b{{ user_name }}\b).*)$'
     replace: '\1 {{ user_name }}'
 
-- name: HARDENING | Restart service sshd and issue daemon-reload to pick up config changes
+- name: HARDENING | Restart service sshd and issue daemon-reload
   ansible.builtin.systemd:
     state: restarted
     daemon_reload: true
@@ -92,7 +119,7 @@
     mode: '0644'
   register: netplan_template
 
-- name: HARDENING | Restart service fail2ban and issue daemon-reload to read fail2ban config changes
+- name: HARDENING | Restart service fail2ban and issue daemon-reload
   ansible.builtin.systemd:
     state: restarted
     daemon_reload: true
@@ -131,5 +158,3 @@
     proto: tcp
   tags:
     - ufw
-
-
