@@ -1,10 +1,19 @@
 ---
-server_name: example.org
+nextcloud_admin_username: admin
+nextcloud_admin_password: superstrongpassword
 nextcloud_version: 24.0.4.1
-nextcloud_path: /var/www
-nextcloud_data_path: "/my/data/nextcloud"
-nextcloud_log_path: "{{ nextcloud_data_path }}/nextcloud.log"
+nextcloud_parent_path: /var/www
+nextcloud_path: "{{ nextcloud_parent_path }}/nextcloud"
+nextcloud_config_path: "{{ nextcloud_path }}/config"
+nextcloud_data_path: /my/data/nextcloud
+nextcloud_log_path: /var/log/nextcloud.log
 nextcloud_bantime: 86400
 nextcloud_findtime: 43200
 mysql_username: franzudev
 mysql_password: superstrongpassword
+mail_from_address: franzudev
+mail_domain: gmail.com
+mail_smtphost: smtp.gmail.com
+mail_smtpport: 465
+mail_smtpname: franzudev@gmail.com
+mail_smtppassword: superstrongpassword
