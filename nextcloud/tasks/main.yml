@@ -413,3 +413,13 @@
     owner: root
     group: root
     mode: '0644'
+  register: nextcloud_template
+
+- name: HARDENING | Restart service fail2ban and issue daemon-reload
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: true
+    enabled: true
+    name: fail2ban
+  when:
+    - nextcloud_template.changed
