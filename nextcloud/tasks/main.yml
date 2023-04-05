@@ -20,6 +20,7 @@
       - mariadb-server
       - redis-server
       - zlib1g-dev
+      - python3-pip
 
 - name: DEPENDENCY | Install required PHP packages
   ansible.builtin.apt:
@@ -132,12 +133,12 @@
 - name: "NEXTCLOUD INSTALL | Extract nextcloud-{{ nextcloud_version }}.tar.bz2 into /var/www/nextcloud"
   ansible.builtin.unarchive:
     src: "/tmp/nextcloud.tar.bz2"
-    dest: "{{ nextcloud_path }}"
+    dest: "{{ nextcloud_parent_path }}"
     remote_src: true
 
 - name: "NEXTCLOUD INSTALL | Change the ownership of your Nextcloud directories to your HTTP user"
   ansible.builtin.file:
-    dest: "{{ nextcloud_path }}/nextcloud"
+    dest: "{{ nextcloud_path }}"
     owner: www-data
     group: www-data
     recurse: yes
@@ -151,6 +152,14 @@
   ansible.builtin.template:
     src: templates/apache.nextcloud.conf.j2
     dest: /etc/apache2/sites-available/nextcloud.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: PHP | Increase php memory limit
+  ansible.builtin.file:
+    src: files/apache_php.ini
+    dest: /etc/php/8.1/fpm/conf.d/10-memory
     owner: root
     group: root
     mode: '0644'
@@ -194,16 +203,41 @@
   community.general.apache2_module:
     state: absent
     name: php8.1
+    ignore_configcheck: true
+    force: true
 
-# http2 abilitation
-#a2dismod php8.1
-#a2enconf php8.1-fpm
-#a2enmod proxy_fcgi
-#a2dismod mpm_prefork
-#a2enmod mpm_event
-#a2enmod http2
-#systemctl restart apache2.service
-#systemctl status apache2.service
+- name: Disable the Apache2 module mpm_prefork
+  community.general.apache2_module:
+    state: absent
+    name: mpm_prefork
+    ignore_configcheck: true
+    force: true
+
+- name: Enable the Apache2 module php8.1-fpm
+  command: a2enconf php8.1-fpm
+
+- name: Enable the Apache2 module mpm_event
+  community.general.apache2_module:
+    state: present
+    name: mpm_event
+    ignore_configcheck: true
+    force: true
+
+- name: Enable the Apache2 module proxy_fcgi
+  community.general.apache2_module:
+    state: present
+    name: proxy_fcgi
+
+- name: Enable the Apache2 module http2
+  community.general.apache2_module:
+    state: present
+    name: http2
+
+- name: Restart service Apache2
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: true
+    name: apache2.service
 
 - name: Ensure a Nextcloud's job that runs at every 5 minutes
   ansible.builtin.cron:
@@ -246,8 +280,8 @@
     mode: '0644'
 
 - name: Copy php-redis configuration file
-  ansible.builtin.copy:
-    src: files/open_basedir.ini.j2
+  ansible.builtin.template:
+    src: templates/open_basedir.ini.j2
     dest: /etc/php/8.1/mods-available/basedir.ini
     owner: root
     group: root
@@ -262,14 +296,14 @@
 - name: APACHE | Copy certificate chain
   ansible.builtin.copy:
     src: files/host.pem-chain
-    dest: /etc/apache2/ssl/{{ server_name }}.pem
+    dest: /etc/apache2/ssl/{{ inventory_hostname }}.pem
     owner: root
     group: root
 
 - name: APACHE | Copy key
   ansible.builtin.copy:
     src: files/host.key
-    dest: /etc/apache2/ssl/{{ server_name }}.key
+    dest: /etc/apache2/ssl/{{ inventory_hostname }}.key
     owner: root
     group: root
 
@@ -293,6 +327,74 @@
     name: apache2
     state: reloaded
 
+- name: PHP | Update php.ini
+  lineinfile:
+    path: /etc/php/8.1/cli/php.ini
+    line: apc.enable_cli = 1
+    state: present
+
+- name: NEXTCLOUD | Copy auth configuration
+  ansible.builtin.copy:
+    src: files/nextcloud_auth.php
+    dest: "{{ nextcloud_config_path }}/auth.config.php"
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+- name: NEXTCLOUD | Copy cache configuration
+  ansible.builtin.copy:
+    src: files/nextcloud_cache.php
+    dest: "{{ nextcloud_config_path }}/cache.config.php"
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+- name: NEXTCLOUD | Copy trashbin configuration
+  ansible.builtin.copy:
+    src: files/nextcloud_trashbin.php
+    dest: "{{ nextcloud_config_path }}/trashbin.config.php"
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+- name: NEXTCLOUD | Copy mail configuration
+  ansible.builtin.template:
+    src: templates/nextcloud_mail.php.j2
+    dest: "{{ nextcloud_config_path }}/mail.config.php"
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+- name: NEXTCLOUD | Copy pretty urls configuration
+  ansible.builtin.template:
+    src: templates/nextcloud_pretty_urls.php.j2
+    dest: "{{ nextcloud_config_path }}/pretty_urls.config.php"
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+- name: NEXTCLOUD | Config exists
+  ansible.builtin.stat:
+    path: "{{ nextcloud_config_path }}/config.php"
+  register: config
+
+- name: NEXTCLOUD | Check if installed
+  lineinfile:
+    path: "{{ nextcloud_config_path }}/config.php"
+    line: "'installed' => true"
+    state: present
+  check_mode: true
+  register: installed
+  when: config.stat.exists
+
+- name: NEXTCLOUD | Install
+  ansible.builtin.command: >
+    sudo -u www-data php /var/www/nextcloud/occ maintenance:install
+    --database='mysql' --database-name='nextcloud'
+    --database-user='{{ mysql_username }}' --database-pass='{{ mysql_password }}'
+    --admin-user='{{ nextcloud_admin_username }}' --admin-pass='{{ nextcloud_admin_password }}'
+  when: installed is defined and installed is not changed
+
 - name: PRETTY | Pretty Urls
   ansible.builtin.command: sudo -u www-data php /var/www/nextcloud/occ maintenance:update:htaccess
 
@@ -303,7 +405,6 @@
     owner: root
     group: root
     mode: '0644'
-  register: nextcloud_filter_template
 
 - name: HARDENING | Configuring nextcloud in fail2ban
   ansible.builtin.template:
@@ -312,4 +413,3 @@
     owner: root
     group: root
     mode: '0644'
-  register: nextcloud_template
