@@ -1,17 +1,17 @@
 <VirtualHost *:80>
-        ServerName  {{ server_name }}
-        Redirect permanent / https://{{ server_name }}/
+        ServerName  {{ inventory_hostname }}
+        Redirect permanent / https://{{ inventory_hostname }}/
 </VirtualHost>
 
 <VirtualHost *:443>
-  DocumentRoot {{ nextcloud_path }}/nextcloud
-  ServerName  {{ server_name }}
+  DocumentRoot {{ nextcloud_path }}
+  ServerName  {{ inventory_hostname }}
 
   SSLEngine On
-  SSLCertificateFile /etc/apache2/ssl/{{ server_name }}.pem
-  SSLCertificateKeyFile /etc/apache2/ssl/{{ server_name }}.key
+  SSLCertificateFile /etc/apache2/ssl/{{ inventory_hostname }}.pem
+  SSLCertificateKeyFile /etc/apache2/ssl/{{ inventory_hostname }}.key
 
-  <Directory {{ nextcloud_path }}/nextcloud/>
+  <Directory {{ nextcloud_path }}/>
     Require all granted
     AllowOverride All
     Options FollowSymLinks MultiViews
