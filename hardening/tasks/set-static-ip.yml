@@ -6,10 +6,5 @@
     owner: root
     group: root
     mode: '0644'
-  register: netplan_template
-
-- name: SET IP | Apply netplan
-  ansible.builtin.command: netplan apply
-  async: 45
-  poll: 0
-  when: netplan_template.changed
+  notify:
+    - Netplan apply

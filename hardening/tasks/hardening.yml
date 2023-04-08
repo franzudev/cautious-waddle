@@ -15,7 +15,7 @@
     password: "{{ ubuntu_user_password }}"
   register: user
 
-- name: "HARDENING | Create user {{ user.name }} ssh dir"
+- name: "HARDENING | Create ssh dir for user {{ user.name }}"
   ansible.builtin.file:
     path: "{{ user.home }}/.ssh"
     state: directory
@@ -32,16 +32,14 @@
     mode: '0644'
 
 - name: HARDENING | Secure Shared Memory
-  register: secure_shared_memory
   ansible.builtin.lineinfile:
     path: /etc/fstab
     state: present
     regexp: '^tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
     line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
-
-- name: HARDENING | Reboot after secured shared memory
-  ansible.builtin.reboot:
-  when: secure_shared_memory.changed or reboot_required_file.stat.exists
+  register: secure_shared_memory
+  notify:
+    - Reboot
 
 - name: HARDENING | Remove unsecure packages
   ansible.builtin.apt:
@@ -95,8 +93,8 @@
   ansible.builtin.replace:
     backup: true
     dest: /etc/ssh/sshd_config
-    regexp: '^(AllowUsers(?!.*\b{{ user_name }}\b).*)$'
-    replace: '\1 {{ user_name }}'
+    regexp: '^(AllowUsers(?!.*\b{{ ssh_allow_users }}\b).*)$'
+    replace: '\1 {{ ssh_allow_users }}'
 
 - name: HARDENING | Restart service sshd and issue daemon-reload
   ansible.builtin.systemd:
@@ -118,15 +116,8 @@
     group: root
     mode: '0644'
   register: netplan_template
-
-- name: HARDENING | Restart service fail2ban and issue daemon-reload
-  ansible.builtin.systemd:
-    state: restarted
-    daemon_reload: true
-    enabled: true
-    name: fail2ban
-  when:
-    - netplan_template.changed
+  notify:
+    - Restart fail2ban
 
 - name: HARDENING | Deny everything and enable UFW
   community.general.ufw:

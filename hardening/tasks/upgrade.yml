@@ -6,7 +6,8 @@
     cache_valid_time: 3600
 
 - name: UPGRADE REPO | apt update
-  command: apt update
+  ansible.builtin.command: apt update
+  changed_when: false
 
 - name: UPGRADE REPO | Upgrade all apt packages
   ansible.builtin.apt:
