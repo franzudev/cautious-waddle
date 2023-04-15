@@ -4,6 +4,8 @@
   ansible.builtin.stat:
     path: /var/run/reboot-required
     get_md5: false
+  tags:
+    - molecule-notest
 
 - name: HARDENING | Add the user 'franzu' with a primary group of 'sudo'
   ansible.builtin.user:
@@ -40,6 +42,8 @@
   register: secure_shared_memory
   notify:
     - Reboot
+  tags:
+    - molecule-notest
 
 - name: HARDENING | Remove unsecure packages
   ansible.builtin.apt:
@@ -87,7 +91,7 @@
     path: /etc/ssh/sshd_config
     state: present
     regexp: '^AllowUsers.*'
-    line: 'AllowUsers'
+    line: 'AllowUsers {{ ssh_allow_users }}'
 
 - name: HARDENING | Add user to AllowUsers
   ansible.builtin.replace:
@@ -101,6 +105,8 @@
     state: restarted
     daemon_reload: true
     name: sshd
+  tags:
+    - molecule-notest
 
 - name: HARDENING | Install fail2ban
   ansible.builtin.apt:
@@ -118,6 +124,8 @@
   register: netplan_template
   notify:
     - Restart fail2ban
+  tags:
+    - molecule-notest
 
 - name: HARDENING | Deny everything and enable UFW
   community.general.ufw:
