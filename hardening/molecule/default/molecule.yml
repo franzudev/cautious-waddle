@@ -2,11 +2,12 @@
 dependency:
   name: galaxy
 driver:
-  name: docker
+  name: podman
 platforms:
   - name: instance
-    image: ubuntu:22.04 
+    image: ubuntu:22.04-python
     pre_build_image: true
+    privileged: true
 provisioner:
   name: ansible
 verifier:
